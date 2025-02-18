@@ -23,32 +23,84 @@ int main()
     pwm_init_gpio(LED_BLUE_PIN, 4096);
     pwm_init_gpio(LED_RED_PIN, 4096);  // added: initialize red LED PWM
 
-   for (size_t i = 0; i < 10; i++)
-   {
-    if(i>0) ssd1306_square(&ssd, i - 1, i - 1, 8, false, false);
-    ssd1306_square(&ssd, i, i, 8, true, true);
-    ssd1306_send_data(&ssd);
-   }
-    
+    int ledToggle = 0; // persistent toggle state for LED_RED
+    bool override = false;
+    uint16_t last_joystick_x = 0;
+
+    // New variables for LED_BLUE
+    int ledToggleBlue = 0;
+    bool overrideBlue = false;
+    uint16_t last_joystick_y = 0;
+
+    // Track if LED is controlled by joystick
+    bool wasJoystickRed = true;
+    bool wasJoystickBlue = true;
+
+    // Inicializa o botão A apenas uma vez
+    gpio_init(B1_PIN);
+    gpio_set_dir(B1_PIN, GPIO_IN);
+    gpio_pull_up(B1_PIN);
+
    uint32_t last_print_time = 0;
 
    float led_intensity_y = 0;
    float led_intensity_x = 0;
-   int ledToggle = 0; // persistent toggle state for LED_RED
 
+   int square_x = 0;
+   int square_y = 0;
    
     while (1) {
         adc_select_input(0);
         uint16_t ex_y = adc_read();
         printf("Y: %d\n", ex_y);
         joystick_define_intensity(&led_intensity_y, ex_y);
-        pwm_set_gpio_level(LED_BLUE_PIN, led_intensity_y);
+                
+        // Cancel blue override if joystick Y changed significantly
+        if (abs((int)ex_y - (int)last_joystick_y) > 50) {
+            overrideBlue = false;
+        }
+        last_joystick_y = ex_y;
+
+        // Atualiza LED azul via joystick se não estiver em override
+        if (!overrideBlue) {
+            pwm_set_gpio_level(LED_BLUE_PIN, led_intensity_y);
+            wasJoystickBlue = true;
+        }
 
         adc_select_input(1);
         uint16_t ex_x = adc_read();
         printf("X: %d\n", ex_x);
         joystick_define_intensity(&led_intensity_x, ex_x);
         pwm_set_gpio_level(LED_RED_PIN, led_intensity_x); 
+
+
+        // Cancel override for red LED if joystick X changed significantly
+        if (abs((int)ex_x - (int)last_joystick_x) > 50) {
+            override = false;
+        }
+        last_joystick_x = ex_x;
+
+        // Atualiza LED vermelho via joystick se não estiver em override
+        if (!override) {
+            pwm_set_gpio_level(LED_RED_PIN, led_intensity_x);
+            wasJoystickRed = true;
+        }
+
+        wasJoystickRed = true;
+    
+
+    // Limpa o quadrado anterior
+    ssd1306_square(&ssd, square_x, square_y, 8, false, true);
+
+    // Move o quadrado
+    update_position(ex_x, ex_y, &square_x, &square_y);
+
+    // chama a função para renderizar e enviar o quadrado
+    ssd1306_square(&ssd, square_x, square_y, 8, true, true);
+    ssd1306_send_data(&ssd);
+
+
+       // 
 
         float duty_cycle = ((float)led_intensity_x / 4095)*100;
 
@@ -61,21 +113,31 @@ int main()
            
         }
 
-        gpio_init(B1_PIN);
-        gpio_pull_up(B1_PIN);
+        // Remova a re-inicialização do botão dentro do loop:
+        // gpio_init(B1_PIN);
+        // gpio_pull_up(B1_PIN);
 
-        if(gpio_get(B1_PIN) == 0) {
-            sleep_ms(10);
+        // Use apenas o check:
+        if (gpio_get(B1_PIN) == 0) {
+            sleep_ms(10);  // debounce inicial
             if (gpio_get(B1_PIN) == 0) {
-            ledToggle = !ledToggle;
-            sleep_ms(250); // evita múltiplas trocas rápidas
-
-            // Aplica o estado do toggle para o LED vermelho
-            pwm_set_gpio_level(LED_RED_PIN, ledToggle ? 4095 : 0);
+                if (wasJoystickRed || wasJoystickBlue) {
+                    ledToggle = 0;
+                    ledToggleBlue = 0;
+                    wasJoystickRed = false;
+                    wasJoystickBlue = false;
+                } else {
+                    ledToggle = !ledToggle;
+                    ledToggleBlue = !ledToggleBlue;
+                }
+                override = true;
+                overrideBlue = true;
+                sleep_ms(200); // debounce final
+                // Aplica o estado do toggle para os LEDs
+                pwm_set_gpio_level(LED_RED_PIN, ledToggle ? 4095 : 0);
+                pwm_set_gpio_level(LED_BLUE_PIN, ledToggleBlue ? 4095 : 0);
             }
         }
-
-
 
         printf("end\n");
         sleep_ms(100);
