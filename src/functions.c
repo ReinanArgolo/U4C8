@@ -19,27 +19,26 @@ void joystick_define_intensity(float *led_intensity, uint16_t ex_y) {
 
 }
 
-// Revert update_position to use calibrated center values and thresholds
+// Updated update_position with an increased threshold to prevent phantom movement
 void update_position(uint16_t x_value, uint16_t y_value, int* x_pos, int* y_pos) {
-    // Calibrated center values (adjust if needed)
+    // Calibrated center values from your log
     const int center_x = 1800;
     const int center_y = 1918;
-    // Thresholds for movement (only update position if error exceeds these values)
-    const int threshold_x = 30;
-    const int threshold_y = 20;
+    const int threshold = 30;  // increased threshold to ignore fluctuations
 
     int error_x = x_value - center_x;
     int error_y = y_value - center_y;
 
-    if (error_x > threshold_x && *x_pos < 127) {
-        (*x_pos)++;
-    } else if (error_x < -threshold_x && *x_pos > 0) {
-        (*x_pos)--;
+    // Update square position only if error exceeds threshold
+    if (error_x > threshold) { // joystick to right
+        if (*x_pos < 127) { (*x_pos)++; }
+    } else if (error_x < -threshold) { // joystick to left
+        if (*x_pos > 0) { (*x_pos)--; }
     }
-
-    if (error_y > threshold_y && *y_pos < 63) {
-        (*y_pos)++;
-    } else if (error_y < -threshold_y && *y_pos > 0) {
-        (*y_pos)--;
+    
+    if (error_y > threshold) { // joystick pushed down
+        if (*y_pos < 63) { (*y_pos)++; }
+    } else if (error_y < -threshold) { // joystick pushed up
+        if (*y_pos > 0) { (*y_pos)--; }
     }
 }
