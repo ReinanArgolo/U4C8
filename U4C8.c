@@ -23,6 +23,7 @@ int main()
 
     pwm_init_gpio(LED_BLUE_PIN, 4096);
     pwm_init_gpio(LED_RED_PIN, 4096);  // added: initialize red LED PWM
+    pwm_init_gpio(LED_GREEN_PIN, 4096);
 
     int ledToggle = 0; // persistent toggle state for LED_RED
     bool override = false;
@@ -37,10 +38,19 @@ int main()
     bool wasJoystickRed = true;
     bool wasJoystickBlue = true;
 
+    // New variables for border & green LED toggle via joystick button (GPIO22)
+    bool greenToggle = false;
+    int borderIndex = 0;
+
     // Inicializa o botão A apenas uma vez
     gpio_init(B1_PIN);
     gpio_set_dir(B1_PIN, GPIO_IN);
     gpio_pull_up(B1_PIN);
+
+    // Initialize POT_PIN (used for green LED toggle) to avoid floating state
+    gpio_init(POT_PIN);
+    gpio_set_dir(POT_PIN, GPIO_IN);
+    gpio_pull_up(POT_PIN);
 
    uint32_t last_print_time = 0;
 
@@ -102,7 +112,6 @@ int main()
         // chama a função para renderizar e enviar o quadrado
         ssd1306_square(&ssd, square_x, square_y, 8, true, true);
         ssd1306_send_data(&ssd);
-
 
         // Cancel override for red LED if joystick X changed significantly
         if (abs((int)ex_x - (int)last_joystick_x) > 50) {
@@ -167,6 +176,38 @@ int main()
                 pwm_set_gpio_level(LED_RED_PIN, ledToggle ? 4095 : 0);
                 pwm_set_gpio_level(LED_BLUE_PIN, ledToggleBlue ? 4095 : 0);
             }
+        }
+
+        // Nova verificação para o botão do JoyStick (GPIO22)
+        if (gpio_get(POT_PIN) == 0) {
+            sleep_ms(10);  // debounce inicial
+            if (gpio_get(POT_PIN) == 0) {
+                greenToggle = !greenToggle;
+                borderIndex = (borderIndex + 1) % 3;
+                pwm_set_gpio_level(LED_GREEN_PIN, greenToggle ? 4095 : 0);
+                sleep_ms(200); // debounce final
+            }
+        }
+
+        // Se o LED verde estiver ativo, desenha a borda conforme o estilo
+        if (greenToggle) {
+            switch(borderIndex) {
+                case 0:
+                    // Borda ocupando toda a tela
+                    ssd1306_rect(&ssd, 0, 0, WIDTH, HEIGHT, true, false);
+                    break;
+                case 1:
+                    // Borda com margem de 2 pixels
+                    ssd1306_rect(&ssd, 2, 2, WIDTH - 4, HEIGHT - 4, true, false);
+                    break;
+                case 2:
+                    // Borda com margem de 4 pixels
+                    ssd1306_rect(&ssd, 4, 4, WIDTH - 8, HEIGHT - 8, true, false);
+                    break;
+                default:
+                    break;
+            }
+            ssd1306_send_data(&ssd);
         }
 
         printf("end\n");

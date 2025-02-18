@@ -7,6 +7,8 @@
 #include "hardware/pwm.h" 
 
 #define VRX_PIN 26
+#define VRY_PIN 27
+#define POT_PIN 22
 
 void adc_start();
 uint pwm_init_gpio(uint gpio, uint wrap);

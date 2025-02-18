@@ -41,4 +41,6 @@ uint pwm_init_gpio(uint gpio, uint wrap) {
 void adc_start() {
     adc_init();
     adc_gpio_init(VRX_PIN);
+    adc_gpio_init(VRY_PIN);
+    adc_gpio_init(POT_PIN);
 }
