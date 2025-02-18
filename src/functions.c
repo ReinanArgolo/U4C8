@@ -31,6 +31,17 @@ void update_position(uint16_t x_value, uint16_t y_value, int* x_pos, int* y_pos)
     int error_x = x_value - center_x;
     int error_y = y_value - center_y;
 
+    printf("Error x: %d, Error y: %d\n", error_x, error_y);
+
+
+    if(error_x < 260 && error_x > -240) {
+        return;
+    }
+
+    if(error_x < -10 && error_x > 50) {
+        return;
+    }
+
     if (error_x > threshold_x && *x_pos < 127) {
         (*x_pos)++;
     } else if (error_x < -threshold_x && *x_pos > 0) {
