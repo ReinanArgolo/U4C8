@@ -24,9 +24,9 @@ void update_position(uint16_t x_value, uint16_t y_value, int* x_pos, int* y_pos)
     // Calibrated center values (adjust if needed)
     const int center_x = 1800;
     const int center_y = 1918;
-    // Thresholds for movement (only update position if error exceeds these values)
-    const int threshold_x = 30;
-    const int threshold_y = 20;
+    // Increased thresholds to reduce ghost movement.
+    const int threshold_x = 100;
+    const int threshold_y = 80;
 
     int error_x = x_value - center_x;
     int error_y = y_value - center_y;

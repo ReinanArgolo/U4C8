@@ -42,6 +42,15 @@ int main()
     bool greenToggle = false;
     int borderIndex = 0;
 
+    // Add new flag variable for manual override
+    bool manualOverrideActive = false;
+
+    // Add new variable for button-controlled LED state
+    bool manualLEDOn = false;
+
+    // NEW: Variables to track current LED states (0 means off)
+    int currentRed = 0, currentBlue = 0;
+
     // Inicializa o botão A apenas uma vez
     gpio_init(B1_PIN);
     gpio_set_dir(B1_PIN, GPIO_IN);
@@ -76,6 +85,7 @@ int main()
         // Atualiza LED azul via joystick se não estiver em override
         if (!overrideBlue) {
             pwm_set_gpio_level(LED_BLUE_PIN, led_intensity_y);
+            currentBlue = led_intensity_y;
             wasJoystickBlue = true;
         }
 
@@ -100,6 +110,7 @@ int main()
         // Atualiza LED vermelho via joystick se não estiver em override
         if (!override) {
             pwm_set_gpio_level(LED_RED_PIN, led_intensity_x);
+            currentRed = led_intensity_x;
             wasJoystickRed = true;
         }
 
@@ -109,21 +120,9 @@ int main()
         // Move o quadrado
         update_position(ex_x, ex_y, &square_x, &square_y);
 
-        // chama a função para renderizar e enviar o quadrado
+        // Renderiza e envia o quadrado
         ssd1306_square(&ssd, square_x, square_y, 8, true, true);
         ssd1306_send_data(&ssd);
-
-        // Cancel override for red LED if joystick X changed significantly
-        if (abs((int)ex_x - (int)last_joystick_x) > 50) {
-            override = false;
-        }
-        last_joystick_x = ex_x;
-
-        // Atualiza LED vermelho via joystick se não estiver em override
-        if (!override) {
-            pwm_set_gpio_level(LED_RED_PIN, led_intensity_x);
-            wasJoystickRed = true;
-        }
 
         wasJoystickRed = true;
     
@@ -152,29 +151,27 @@ int main()
            
         }
 
-        // Remova a re-inicialização do botão dentro do loop:
-        // gpio_init(B1_PIN);
-        // gpio_pull_up(B1_PIN);
-
         // Use apenas o check:
+        // Botão B1: botão sempre alterna o estado dos LEDs ignorando o valor do joystick
         if (gpio_get(B1_PIN) == 0) {
             sleep_ms(10);  // debounce inicial
             if (gpio_get(B1_PIN) == 0) {
-                if (wasJoystickRed || wasJoystickBlue) {
-                    ledToggle = 0;
-                    ledToggleBlue = 0;
-                    wasJoystickRed = false;
-                    wasJoystickBlue = false;
-                } else {
-                    ledToggle = !ledToggle;
-                    ledToggleBlue = !ledToggleBlue;
-                }
                 override = true;
                 overrideBlue = true;
+                if (currentRed == 0 && currentBlue == 0) {
+                    // Se estar apagado, força ligar os LEDs com intensidade máxima
+                    manualLEDOn = true;
+                    currentRed = 4095; currentBlue = 4095;
+                    pwm_set_gpio_level(LED_RED_PIN, 4095);
+                    pwm_set_gpio_level(LED_BLUE_PIN, 4095);
+                } else {
+                    // Se estiver ligado (por joystick ou manual), força desligar
+                    manualLEDOn = false;
+                    currentRed = 0; currentBlue = 0;
+                    pwm_set_gpio_level(LED_RED_PIN, 0);
+                    pwm_set_gpio_level(LED_BLUE_PIN, 0);
+                }
                 sleep_ms(200); // debounce final
-                // Aplica o estado do toggle para os LEDs
-                pwm_set_gpio_level(LED_RED_PIN, ledToggle ? 4095 : 0);
-                pwm_set_gpio_level(LED_BLUE_PIN, ledToggleBlue ? 4095 : 0);
             }
         }
 
