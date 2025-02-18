@@ -3,7 +3,13 @@
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "inc/ssd1306.h"
+#include "hardware/adc.h" 
+#include "hardware/pwm.h" 
 
+#define VRX_PIN 26
+
+void adc_start();
+uint pwm_init_gpio(uint gpio, uint wrap);
 
 // LEDS PINS
 #define LED_BLUE_PIN 12
@@ -20,32 +26,9 @@
 #define I2C_PORT i2c1
 
 
-void init_leds() {
-    gpio_init(LED_BLUE_PIN);
-    gpio_init(LED_RED_PIN);
-    gpio_init(LED_GREEN_PIN);
-    gpio_set_dir(LED_BLUE_PIN, GPIO_OUT);
-    gpio_set_dir(LED_RED_PIN, GPIO_OUT);
-    gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
+extern void init_leds();
+extern void init_buttons();
+extern void init_i2c(ssd1306_t *ssd);
+extern uint pwm_init_gpio(uint gpio, uint wrap);
+extern void adc_start();
 
-}
-
-void init_buttons() {
-    gpio_init(B1_PIN);
-    gpio_set_dir(B1_PIN, GPIO_IN);    
-    gpio_pull_up(B1_PIN);
-    
-}
-
-
-void init_i2c(ssd1306_t *ssd) {
-    i2c_init(I2C_PORT, 400 * 1000); // Ensure correct I2C port is used
-    gpio_set_function(LCD_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(LCD_SCL_PIN, GPIO_FUNC_I2C);   
-    gpio_pull_up(LCD_SCL_PIN);
-    gpio_pull_up(LCD_SDA_PIN); 
-
-    ssd1306_init(ssd, WIDTH, HEIGHT, 0, ENDR_LCD, I2C_PORT);
-    ssd1306_config(ssd);
-    ssd1306_send_data(ssd);
-}
