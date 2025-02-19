@@ -22,8 +22,7 @@ Este projeto demonstra a integração de periféricos com o Raspberry Pi Pico:
 - Ajuste os parâmetros (sensibilidade, thresholds) se necessário para sua aplicação.
 
 ## Vídeo Demonstrativo
-<!-- Espaço reservado para o vídeo da atividade - insira o link ou embed do vídeo aqui -->
-
+[Link](https://youtu.be/eGIxfxCIOvQ)
 ## Estrutura de Código
 - `src/init.h` e `src/init.c`: Inicialização de periféricos e funções auxiliares.
 - `src/functions.h` e `src/functions.c`: Processamento de dados do joystick e renderização no display.
